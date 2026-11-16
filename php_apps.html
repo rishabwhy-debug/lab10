@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Applications (Session, Date/Time, Age Check)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Segoe UI, Arial, sans-serif; background: #eef2f7; margin: 0; padding: 24px; color: #1f2937; }
+  nav { max-width: 520px; margin: 0 auto 16px; display: flex; gap: 8px; }
+  nav button { flex: 1; padding: 10px 6px; border: 0; border-radius: 8px; background: #d9e2ef; cursor: pointer; font-size: .9rem; }
+  nav button.active { background: #2563eb; color: #fff; }
+  .card { max-width: 520px; margin: 0 auto; background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 18px rgba(0,0,0,.08); display: none; }
+  .card.active { display: block; }
+  .center { text-align: center; }
+  h2 { margin-top: 0; }
+  label { display: block; margin: 14px 0 6px; font-weight: 600; }
+  input { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; }
+  .btn { display: inline-block; margin-top: 18px; padding: 11px 22px; border: 0; border-radius: 8px; background: #2563eb; color: #fff; font-size: 1rem; cursor: pointer; }
+  .btn.danger { background: #dc2626; }
+  .err { color: #b91c1c; }
+  .ok { color: #15803d; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; text-align: left; }
+  th, td { padding: 11px 8px; border-bottom: 1px solid #e5e7eb; }
+  th { width: 35%; color: #475569; }
+  .corner { position: fixed; top: 14px; right: 18px; background: #1e3a8a; color: #fff; padding: 8px 14px; border-radius: 8px; font-size: .9rem; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+</style>
+</head>
+<body>
+
+<nav>
+  <button id="tab-a" onclick="tab('a')">a. Hello &amp; Session</button>
+  <button id="tab-b" onclick="tab('b')">b. Date &amp; Time</button>
+  <button id="tab-c" onclick="tab('c')">c. Age Check</button>
+</nav>
+
+<!-- ============ A ============ -->
+<div id="app-a" class="card">
+  <div id="a-login">
+    <h2>Enter your name</h2>
+    <p class="err" id="a-err"></p>
+    <label for="a-name">Name</label>
+    <input type="text" id="a-name" placeholder="Your name">
+    <button class="btn" onclick="login()">Submit</button>
+  </div>
+
+  <div id="a-hello" class="center" style="display:none">
+    <div class="corner" id="a-start"></div>
+    <h2 id="a-hello-msg"></h2>
+    <p>Welcome to the site. Your session is active.</p>
+    <button class="btn danger" onclick="logout()">Logout</button>
+  </div>
+
+  <div id="a-bye" class="center" style="display:none">
+    <h2 id="a-bye-msg"></h2>
+    <p>You have logged out successfully.</p>
+    <p>Duration of usage: <strong id="a-dur"></strong></p>
+    <button class="btn" onclick="backToLogin()">Login again</button>
+  </div>
+</div>
+
+<!-- ============ B ============ -->
+<div id="app-b" class="card center">
+  <h2>Current Date, Time and Day</h2>
+  <table>
+    <tr><th>Date</th><td id="b-date"></td></tr>
+    <tr><th>Time</th><td id="b-time"></td></tr>
+    <tr><th>Day</th><td id="b-day"></td></tr>
+  </table>
+</div>
+
+<!-- ============ C ============ -->
+<div id="app-c" class="card">
+  <div id="c-form">
+    <h2>Enter your details</h2>
+    <p class="err" id="c-err"></p>
+    <label for="c-name">Name</label>
+    <input type="text" id="c-name" placeholder="Your name">
+    <label for="c-age">Age</label>
+    <input type="number" id="c-age" min="0" max="120" placeholder="Your age">
+    <button class="btn" onclick="checkAge()">Submit</button>
+  </div>
+  <div id="c-result" class="center" style="display:none">
+    <h2 id="c-msg"></h2>
+    <button class="btn" onclick="againC()">Back</button>
+  </div>
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+
+  function tab(t) {
+    ["a", "b", "c"].forEach(x => {
+      $("app-" + x).classList.toggle("active", x === t);
+      $("tab-" + x).classList.toggle("active", x === t);
+    });
+    // the start-time badge belongs to app A only
+    $("a-start").style.display = (t === "a") ? "block" : "none";
+  }
+
+  /* ---------- A: session (sessionStorage plays the role of PHP $_SESSION) ---------- */
+  function fmtDate(ms) { return new Date(ms).toLocaleString("en-IN"); }
+
+  function showA() {
+    const name = sessionStorage.getItem("name");
+    const start = sessionStorage.getItem("start");
+    const active = name && start;
+    $("a-login").style.display = active ? "none" : "block";
+    $("a-hello").style.display = active ? "block" : "none";
+    $("a-bye").style.display = "none";
+    if (active) {
+      $("a-hello-msg").textContent = "Hello, " + name + "!";   // textContent = safe from HTML injection
+      $("a-start").textContent = "Start time: " + fmtDate(+start);
+    }
+  }
+
+  function login() {
+    const name = $("a-name").value.trim();
+    if (!name) { $("a-err").textContent = "Please enter your name."; return; }
+    $("a-err").textContent = "";
+    sessionStorage.setItem("name", name);
+    sessionStorage.setItem("start", Date.now());
+    $("a-name").value = "";
+    showA();
+  }
+
+  function logout() {
+    const name = sessionStorage.getItem("name");
+    const secs = Math.floor((Date.now() - +sessionStorage.getItem("start")) / 1000);
+    sessionStorage.clear();                                   // like session_destroy()
+    $("a-bye-msg").textContent = "Thank You, " + name + "!";
+    $("a-dur").textContent = Math.floor(secs / 3600) + " hour(s) " + Math.floor(secs % 3600 / 60) + " minute(s) " + (secs % 60) + " second(s)";
+    $("a-hello").style.display = "none";
+    $("a-start").style.display = "none";
+    $("a-bye").style.display = "block";
+  }
+
+  function backToLogin() { showA(); tab("a"); }
+
+  /* ---------- B: live date / time / day ---------- */
+  function updateB() {
+    const n = new Date();
+    $("b-date").textContent = n.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
+    $("b-time").textContent = n.toLocaleTimeString("en-IN");
+    $("b-day").textContent = n.toLocaleDateString("en-US", { weekday: "long" });
+  }
+  setInterval(updateB, 1000);
+  updateB();
+
+  /* ---------- C: age check ---------- */
+  function checkAge() {
+    const name = $("c-name").value.trim();
+    const age = parseInt($("c-age").value, 10);
+    if (!name || isNaN(age) || age < 0 || age > 120) {
+      $("c-err").textContent = "Please enter a valid name and an age between 0 and 120.";
+      return;
+    }
+    $("c-err").textContent = "";
+    const msg = $("c-msg");
+    if (age < 18) { msg.textContent = "Hello, " + name + ", you are not authorized to visit the site"; msg.className = "err"; }
+    else          { msg.textContent = "Welcome to this site"; msg.className = "ok"; }
+    $("c-form").style.display = "none";
+    $("c-result").style.display = "block";
+  }
+
+  function againC() {
+    $("c-name").value = ""; $("c-age").value = "";
+    $("c-form").style.display = "block";
+    $("c-result").style.display = "none";
+  }
+
+  showA();
+  tab("a");
+</script>
+</body>
+</html>
